@@ -17,6 +17,9 @@
 # (define r 10) => r = 10 in ruby
 # This will go to an evaluator which makes the code into something real.
 
+# An important part of Lisps legacy is the REPL or the read-eval-print-loop. Which allow you to
+# have statements evaluated and printed immediately.
+
 # Example program:
 # This begins by making a variable r with value 10 and then calculating the area of a circle
 program = "(begin (define r 10) (* 3.14 (* r r)))"
@@ -31,7 +34,7 @@ class Env < Hash
 	
 	def initialize(params = [], args = [], outer = nil)
 		@outer = outer
-		(params.is_a? Array) ? update(Hash[params.zip(args)]) : update(Hash[params, args])
+		params.is_a?(Array) ? update(Hash[params.zip(args)]) : update(Hash[params, args])
 	end
 
 	#TODO:
@@ -105,7 +108,7 @@ end
 ##
 # addGlobals
 # An environment with standard Scheme procedures
-# In: Env - environment
+# In: Env  - environment
 # Out: Env - for using in eval
 def addGlobals(env)
 	# standard arithmetic operators
@@ -122,12 +125,16 @@ def addGlobals(env)
 	            :eq?    => lambda {|x,y| x == y},
 	            :equal? => lambda {|x,y| x == y}})
 	# Other non math Scheme procedures
-	env.update({:not    => lambda {|x| !x},
-	            :length => lambda {|x| x.length},
-	            :cons   => lambda {|x,y| [x] + y},
-	            :cdr    => lambda {|x| x[1..-1]},
-	            :car    => lambda {|x| x[0]},
-	            :null?  => lambda {|x| x.nil?}})
+	env.update({:not     => lambda {|x| !x},
+	            :length  => lambda {|x| x.length},
+	            :append  => lambda {|x,y| x + y}, # (append '(1 2) '(3 4))
+	            :cons    => lambda {|x,y| [x] + y},
+	            :cdr     => lambda {|x| x[1..-1]},
+	            :car     => lambda {|x| x[0]},
+	            :list    => lambda {|*x| x},
+	            :list?   => lambda {|x| x.is_a?(Array)},
+	            :symbol? => lambda {|x| x.is_a?(Symbol)},
+	            :null?   => lambda {|x| x.nil?}})
 	# the methods from the math module can be added to the global env.
 	mathMethods = Math.singleton_methods.map{|x| x.to_s}
 	env.update(Hash[mathMethods.zip(mathMethods.map{|x| lambda {|*args| Math.send(x, args)}})])
@@ -141,7 +148,7 @@ $global_env = addGlobals(Env.new)
 # evaluate
 # Evaluate the expressions in the environment.
 # In: Exp, env - Expressions and the environment together will be evaluated for execution.
-# Out: Exp - expressions will leave to be executed
+# Out: Exp     - expressions will leave to be executed
 def evaluate(exp, env = $global_env)
   exp = exp[0] if exp.is_a? Array and exp.length == 1 
   
@@ -189,4 +196,31 @@ def evaluate(exp, env = $global_env)
 	end
 end
 
-puts(evaluate(parse(program: program)))
+##
+# repl
+# An interactive way to type Scheme code in the terminal
+# In: String  - Prompt which will always be displayed.
+# Out: String - Executed Scheme code
+def repl(prompt = "~> ")
+	loop do
+		print(prompt)
+		val = evaluate(parse(program: gets.chomp))
+		puts(toSchemeStr(val)) unless val.nil?
+	end
+end
+
+##
+# toSchemeStr
+# Convert an object to Scheme readable string
+# In: Exp     - Object to be converted (an expression)
+# Out: String - Scheme readable string.
+def toSchemeStr(exp)
+	if exp.is_a?(Array)
+		"(" + (exp.map {|x| to_string(x)}).join(" ") + ")"
+	else
+		String(exp) unless exp.is_a?(Proc)
+	end
+end
+
+#puts(evaluate(parse(program: program)))
+repl()
