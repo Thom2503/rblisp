@@ -20,6 +20,10 @@
 # An important part of Lisps legacy is the REPL or the read-eval-print-loop. Which allow you to
 # have statements evaluated and printed immediately.
 
+# For the exit program :)
+require 'net/http'
+require 'uri'
+
 # Example program:
 # This begins by making a variable r with value 10 and then calculating the area of a circle
 program = "(begin (define r 10) (* 3.14 (* r r)))"
@@ -41,7 +45,7 @@ class Env < Hash
 	# This can't handle an constant like PI.
 	# find the innermost env where var is.
 	def find(var)
-		include?(var)? self : outer.find(var)
+		include?(var) ? self : outer.find(var)
 	end
 end
 
@@ -204,7 +208,9 @@ end
 def repl(prompt = "~> ")
 	loop do
 		print(prompt)
-		val = evaluate(parse(program: gets.chomp))
+		input = gets.chomp
+		break if input == "(quit)" or input == "(exit)"
+		val = evaluate(parse(program: input))
 		puts(toSchemeStr(val)) unless val.nil?
 	end
 end
@@ -224,3 +230,14 @@ end
 
 #puts(evaluate(parse(program: program)))
 repl()
+
+# If you quit the repl by typing (quit) or (exit) give a quote by a random stoic
+# It's a bit slow :(
+at_exit do
+	uri = URI("https://stoicquotesapi.com/v1/api/quotes/random")
+	res = Net::HTTP.get(uri)
+	# get a hash from the data
+	response = eval(res)
+	puts(response[:body])
+	puts(" - " + response[:author])
+end
