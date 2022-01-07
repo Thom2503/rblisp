@@ -128,6 +128,9 @@ def addGlobals(env)
 	            :<=     => lambda {|x,y| x <= y},
 	            :eq?    => lambda {|x,y| x == y},
 	            :equal? => lambda {|x,y| x == y}})
+	# Some math operators
+	env.update({:sqrt => lambda {|x| Math.sqrt(x)},
+	            :expt => lambda {|x,y| x**y}})
 	# Other non math Scheme procedures
 	env.update({:not     => lambda {|x| !x},
 	            :length  => lambda {|x| x.length},
